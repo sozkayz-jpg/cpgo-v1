@@ -1,0 +1,9 @@
+{
+  "framework": "nextjs",
+  "buildCommand": "prisma generate && prisma migrate deploy && npx prisma db seed && next build",
+  "env": {
+    "DATABASE_URL": "file:/tmp/dev.db",
+    "JWT_SECRET": "cpgo-app-secret-2024-preview",
+    "STRIPE_SECRET_KEY": "sk_test_51TestDemoKeyReplaceMe"
+  }
+}
