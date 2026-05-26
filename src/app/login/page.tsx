@@ -39,7 +39,7 @@ export default function LoginPage() {
           <h1 className="text-[28px] font-semibold tracking-[-0.02em] text-[var(--color-text-primary)]">
             Connexion</h1>
           <p className="mt-1 text-[15px] text-[var(--color-text-secondary)]">
-            Accédez à votre tableau de bord CPGO.</p>
+            Accédez à votre tableau de bord CarplayGO.</p>
         </div>
 
         <form onSubmit={onSubmit} className="space-y-4">

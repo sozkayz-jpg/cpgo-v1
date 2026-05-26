@@ -4,8 +4,8 @@ import { ToastProvider } from "@/components/ui/toast";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "CPGO - Admin Dashboard",
-  description: "Tableau de bord d'administration CPGO",
+    title: "CarplayGO - E-commerce",
+    description: "CarplayGO - CarPlay sans fil en quelques secondes. Dongles USB compatibles iPhone.",
 };
 
 export default function RootLayout({

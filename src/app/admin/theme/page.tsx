@@ -218,7 +218,7 @@ export default function ThemePage() {
                   <span className={cn(
                     "font-semibold text-[17px]",
                     isDark ? "text-[#F5F5F7]" : "text-[#1D1D1F]"
-                  )}>CPGO Store</span>
+                  )}>CarplayGO Store</span>
                   <div className="flex items-center gap-3">
                     <span className={cn(
                       "text-[13px]",

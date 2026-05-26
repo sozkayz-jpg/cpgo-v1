@@ -15,7 +15,7 @@ export default function ParametresPage() {
   const { success } = useToast();
   const [loading, setLoading] = useState(false);
   const [store, setStore] = useState({
-    name: "CPGO",
+    name: "CarplayGO",
     email: "contact@cpgo.fr",
     phone: "+33 1 23 45 67 89",
     address: "12 Rue de Paris, Paris",

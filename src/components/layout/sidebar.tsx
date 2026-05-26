@@ -109,7 +109,7 @@ export function Sidebar({ collapsed, onToggle }: { collapsed?: boolean; onToggle
             </div>
             {!collapsed && (
               <span className="font-semibold text-[17px] text-[var(--color-text-primary)] tracking-[-0.02em]">
-                CPGO
+                CarplayGO
               </span>
             )}
           </div>

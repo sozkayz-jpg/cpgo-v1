@@ -18,115 +18,83 @@ async function main() {
   const hashedPassword = await bcrypt.hash('admin123', 10)
   await prisma.user.create({
     data: {
-      email: 'admin@cpgo.fr',
-      name: 'Admin CPGO',
+      email: 'admin@carplaygo.fr',
+      name: 'Admin CarplayGO',
       password: hashedPassword,
       role: 'admin',
     },
   })
 
   // Categories
-  const dongles = await prisma.category.create({
-    data: { name: 'Dongles CarPlay', slug: 'dongles-carplay', description: 'Transformez votre écran automobile en CarPlay/Android Auto sans fil via USB' }
-  })
-  const adaptateurs = await prisma.category.create({
-    data: { name: 'Adaptateurs USB', slug: 'adaptateurs-usb', description: 'Câbles et adaptateurs USB-C / Lightning compatibles' }
+  const carplay = await prisma.category.create({
+    data: { name: 'Dongles CarPlay', slug: 'dongles-carplay', description: 'Transformez votre écran auto en CarPlay/Android Auto sans fil' }
   })
   const accessoires = await prisma.category.create({
-    data: { name: 'Accessoires Auto', slug: 'accessoires-auto', description: 'Supports, chargeurs et accessoires pour votre voiture connectée' }
+    data: { name: 'Accessoires', slug: 'accessoires', description: 'Supports, câbles et accessoires pour votre dongle' }
   })
 
-  // Produit : Dongle USB CarPlay principal
+  // Products
   const products = await Promise.all([
     prisma.product.create({
       data: {
-        name: 'Dongle USB CarPlay Sans Fil CPGO V1',
-        slug: 'dongle-usb-carplay-v1',
-        reference: 'DGL-V1',
-        shortDesc: 'Transformez votre écran auto d\'origine en CarPlay/Android Auto via USB. Plug-and-play, latence ultra-faible.',
-        description: 'Le dongle CPGO V1 se branche directement sur le port USB de votre autoradio d\'origine pour déployer CarPlay sans fil et Android Auto. Compatible avec la très grande majorité des véhicules disposant d\'un écran d\'origine (OEM) fonctionnant avec CarPlay filaire. Latence <80ms, mise à jour automatique, support des commandes au volant.',
+        name: 'CarplayGO Dongle Sans Fil V1',
+        slug: 'carplaygo-v1',
+        reference: 'CPG-V1',
+        shortDesc: 'Dongle USB CarPlay sans fil. Connectivité instantanée Plug & Play pour votre véhicule.',
+        description: 'Le CarplayGO V1 transforme votre écran d\'origine en CarPlay sans fil en quelques secondes. Branchez le dongle sur le port USB de votre autoradio compatible, appairez votre iPhone et profitez de la navigation, de la musique, des appels et de Siri sans toucher votre téléphone. Zéro latence, mise à jour OTA automatique, support des commandes au volant. Compatible avec 95% des véhicules équipés d\'un écran OEM avec CarPlay filaire.',
         price: 8900,
         comparePrice: 12900,
-        stock: 156,
-        sku: 'CPGO-V1-BLK',
+        stock: 342,
+        sku: 'CPG-V1-BLK',
         status: 'active',
         featured: true,
-        categoryId: dongles.id,
+        categoryId: carplay.id,
       }
     }),
     prisma.product.create({
       data: {
-        name: 'Dongle USB CarPlay Sans Fil CPGO V2 — CarPlay & Android Auto',
-        slug: 'dongle-usb-carplay-v2',
-        reference: 'DGL-V2',
-        shortDesc: 'Version double : CarPlay + Android Auto sans fil sur le même boîtier. Micrologiciel OTA.',
-        description: 'Le CPGO V2 est le dongle double-protocol le plus rapide du marché : bascule automatique entre CarPlay et Android Auto selon le téléphone connecté. Latence <60ms, OTA auto, microphone intégré pour les appels mains-libres, support des applications tierces (YouTube, Netflix via interface).',
-        price: 12900,
-        comparePrice: 17900,
-        stock: 89,
-        sku: 'CPGO-V2-SLV',
+        name: 'CarplayGO Dongle Sans Fil V2 — CarPlay & Android Auto',
+        slug: 'carplaygo-v2',
+        reference: 'CPG-V2',
+        shortDesc: 'Version double : CarPlay + Android Auto sans fil. Meme boîtier, double compatibilité.',
+        description: 'Le CarplayGO V2 est le seul dongle double-protocol du marché. Il bascule automatiquement entre CarPlay (iPhone) et Android Auto (smartphones Android) selon le téléphone connecté. Latence réduite à<60ms, microphone intégré pour appels mains-libres, mises à jour OTA, support YouTube et Netflix via interface dédiée. Convient aux familles multi-OS.',
+        price: 11900,
+        comparePrice: 15900,
+        stock: 198,
+        sku: 'CPG-V2-SLV',
         status: 'active',
         featured: true,
-        categoryId: dongles.id,
+        categoryId: carplay.id,
       }
     }),
     prisma.product.create({
       data: {
-        name: 'Adaptateur USB-C vers USB-A Blindé',
-        slug: 'adaptateur-usb-c-vers-a',
-        reference: 'ADP-001',
-        shortDesc: 'Convertisseur USB-C mâle vers USB-A femelle blindé pour connecter le dongle aux nouvelles autoradios.',
-        description: 'Adaptateur premium avec blindage aluminium pour éviter les interférences. Supporte le transfert de données haute vitesse et la charge rapide. Idéal si votre autoradio moderne ne dispose que d\'une prise USB-C.',
-        price: 1500,
-        stock: 245,
-        sku: 'ADP-USBC-A',
+        name: 'CarplayGO Pack V2 + Support Magnétique',
+        slug: 'carplaygo-pack-v2',
+        reference: 'CPG-PACK-V2',
+        shortDesc: 'Le dongle V2 avec son support magnétique premium dissimulable derrière le tableau de bord.',
+        description: 'Pack complet : dongle CarplayGO V2 + support adhesif magnétique premium en aluminium + câble USB-C blindé 30cm. Le support se fixe discrètement derrière l\'autoradio et maintient le dongle en place. Installation en 2 minutes, zéro fil visible.',
+        price: 13900,
+        comparePrice: 18900,
+        stock: 87,
+        sku: 'CPG-PACK-V2',
         status: 'active',
-        featured: false,
-        categoryId: adaptateurs.id,
-      }
-    }),
-    prisma.product.create({
-      data: {
-        name: 'Support Adhésif Métallique pour Dongle CPGO',
-        slug: 'support-adhesif-dongle',
-        reference: 'ACC-001',
-        shortDesc: 'Support aimanté + adhésif 3M pour fixer discrètement le dongle derrière l\'autoradio.',
-        description: 'Fixation invisible pour votre dongle CPGO. Plaque métallique ultra-mince, adhésif 3M résistant à la chaleur jusqu\'à 90°C. Maintient fermement le boîtier tout en le rendant entièrement dissimulable.',
-        price: 900,
-        stock: 340,
-        sku: 'ACC-MNT-01',
-        status: 'active',
-        featured: false,
+        featured: true,
         categoryId: accessoires.id,
       }
     }),
     prisma.product.create({
       data: {
-        name: 'Câble USB-C Tressé Nylon 1m — Charge Rapide 60W',
-        slug: 'cable-usb-c-tresse',
-        reference: 'CBL-001',
-        shortDesc: 'Câble USB-C vers USB-C tressé nylon, charge rapide 60W, transmission stable pour dongle et smartphone.',
-        description: 'Câble court parfait pour connecter le dongle CPGO à l\'alimentation. Tressage nylon renforcé, connecteurs aluminium, supporte la charge rapide 60W et la transmission de données à haute vitesse sans perte de signal.',
-        price: 1299,
-        stock: 0,
-        sku: 'CBL-USBC-1M',
-        status: 'out_of_stock',
-        featured: false,
-        categoryId: adaptateurs.id,
-      }
-    }),
-    prisma.product.create({
-      data: {
-        name: 'Chargeur Allume-Cigare Dual USB-C 45W',
-        slug: 'chargeur-allume-cigare-dual',
-        reference: 'PWR-001',
-        shortDesc: 'Chargeur voiture double sortie USB-C 45W total, compatible charge rapide smartphone et dongle.',
-        description: 'Alimentation stable pour votre dongle CPGO et votre smartphone simultanément. Double port USB-C Power Delivery, protection contre les surtensions et la surchauffe. Design compact qui ne dépasse pas de la prise allume-cigare.',
-        price: 2499,
-        stock: 67,
-        sku: 'PWR-PD45',
+        name: 'Support Magnétique CarplayGO Premium',
+        slug: 'support-magnetique-carplaygo',
+        reference: 'CPG-ACC-001',
+        shortDesc: 'Support aimanté + adhesif 3M VHB pour fixer disscretement votre dongle.',
+        description: 'Fixation invisible pour votre dongle CarplayGO. Plaque métallique ultra-mince (2mm), adhésif 3M VHB résistant à la chaleur jusqu\'à 100°C. Maintient fermement le boîtier en cas de vibrations et chocs sur route. Installation réversible.',
+        price: 1200,
+        stock: 450,
+        sku: 'CPG-ACC-001',
         status: 'active',
-        featured: true,
+        featured: false,
         categoryId: accessoires.id,
       }
     }),
@@ -137,12 +105,12 @@ async function main() {
     await prisma.sEOPage.create({
       data: {
         productId: p.id,
-        path: `/produit/${p.slug}`,
+        path: `/boutique/${p.slug}`,
         title: p.name,
-        metaTitle: `${p.name} | CPGO — Dongle USB CarPlay Sans Fil`,
+        metaTitle: `${p.name} | CarplayGO — Dongle USB CarPlay Sans Fil`,
         metaDescription: p.shortDesc,
-        score: [72, 85, 91, 68, 55, 88][products.indexOf(p)],
-        issues: [8, 4, 2, 10, 15, 3][products.indexOf(p)],
+        score: 88,
+        issues: 2,
         checked: true,
       }
     })
@@ -151,66 +119,50 @@ async function main() {
   // Customers
   const customers = await Promise.all([
     prisma.customer.create({ data: { email: 'sophie.martin@email.com', firstName: 'Sophie', lastName: 'Martin', phone: '+33612345678', address: '12 Rue de la Paix', city: 'Paris', zip: '75002' } }),
-    prisma.customer.create({ data: { email: 'kevin.durant@email.com', firstName: 'Kévin', lastName: 'Durand', phone: '+33687654321', address: '45 Av. Jean Jaurès', city: 'Lyon', zip: '69007' } }),
+    prisma.customer.create({ data: { email: 'kevin.durand@email.com', firstName: 'Kevin', lastName: 'Durand', phone: '+33687654321', address: '45 Av. Jean Jaurès', city: 'Lyon', zip: '69007' } }),
     prisma.customer.create({ data: { email: 'laura.petit@email.com', firstName: 'Laura', lastName: 'Petit', phone: '+33611223344', address: '8 Boulevard Saint-Germain', city: 'Marseille', zip: '13001' } }),
   ])
 
-  // Orders (linked to customers)
-  const order1 = await prisma.order.create({
+  // Orders
+  await prisma.order.create({
     data: {
-      number: 'CPGO-2024-001',
+      number: 'CPG-2024-001',
       status: 'delivered',
-      total: 10400,
+      total: 8900,
       subtotal: 8900,
       shipping: 0,
-      tax: 1500,
-      notes: 'Colis livré en 48h. Client satisfait.',
+      tax: 0,
+      notes: 'Colis livré en 48h Chronopost. Client satisfait.',
       customerId: customers[0].id,
-      items: {
-        create: [
-          { quantity: 1, price: 8900, productId: products[0].id },
-        ]
-      }
+      items: { create: [{ quantity: 1, price: 8900, productId: products[0].id }] }
     }
   })
 
-  const order2 = await prisma.order.create({
+  await prisma.order.create({
     data: {
-      number: 'CPGO-2024-002',
+      number: 'CPG-2024-002',
       status: 'shipped',
-      total: 15398,
-      subtotal: 12900,
-      shipping: 0,
-      tax: 2498,
-      notes: 'Expédié via Colissimo. Suivi envoyé par email.',
-      customerId: customers[1].id,
-      items: {
-        create: [
-          { quantity: 1, price: 12900, productId: products[1].id },
-          { quantity: 1, price: 1500, productId: products[2].id },
-        ]
-      }
-    }
-  })
-
-  const order3 = await prisma.order.create({
-    data: {
-      number: 'CPGO-2024-003',
-      status: 'confirmed',
-      total: 24999,
-      subtotal: 12900 + 2499 + 900 + 8900,
+      total: 11900,
+      subtotal: 11900,
       shipping: 0,
       tax: 0,
-      notes: 'Commande pack complet.',
+      notes: 'Expédié via Colissimo International.',
+      customerId: customers[1].id,
+      items: { create: [{ quantity: 1, price: 11900, productId: products[1].id }] }
+    }
+  })
+
+  await prisma.order.create({
+    data: {
+      number: 'CPG-2024-003',
+      status: 'confirmed',
+      total: 13900,
+      subtotal: 13900,
+      shipping: 0,
+      tax: 0,
+      notes: 'Pack complet commandé.',
       customerId: customers[2].id,
-      items: {
-        create: [
-          { quantity: 1, price: 12900, productId: products[1].id },
-          { quantity: 1, price: 2499, productId: products[5].id },
-          { quantity: 1, price: 900, productId: products[3].id },
-          { quantity: 1, price: 8900, productId: products[0].id },
-        ]
-      }
+      items: { create: [{ quantity: 1, price: 13900, productId: products[2].id }] }
     }
   })
 
@@ -218,9 +170,9 @@ async function main() {
   await prisma.theme.create({ data: {} })
 
   console.log('✅ Seed completed!')
-  console.log(`   ${products.length} produits dongle CarPlay créés`)
+  console.log(`   ${products.length} produits CarplayGO créés`)
   console.log(`   ${customers.length} clients`)
-  console.log(`   3 commandes (dont 1 livrée, 1 expédiée, 1 confirmée)`)
+  console.log(`   3 commandes`)
 }
 
 main()
