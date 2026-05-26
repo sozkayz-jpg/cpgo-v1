@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { AdminLayout } from "@/components/layout/admin-layout";
+import { useToast } from "@/components/ui/toast";
 import {
   Table,
   TableHeader,
@@ -14,6 +15,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Plus, Pencil, Trash2, Eye } from "lucide-react";
 
 interface Product {
@@ -21,7 +23,7 @@ interface Product {
   name: string;
   slug: string;
   reference: string;
-  category: { name: string };
+  category: { name: string } | null;
   price: number;
   stock: number;
   status: string;
@@ -47,15 +49,39 @@ export default function AdminProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [createModalOpen, setCreateModalOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const { success, error: showError } = useToast();
+
+  const [newProduct, setNewProduct] = useState({
+    name: "",
+    reference: "",
+    slug: "",
+    price: "",
+    stock: "",
+    description: "",
+  });
+
+  const loadProducts = () => {
+    setLoading(true);
+    fetch("/api/products")
+      .then(async (r) => {
+        if (!r.ok) throw new Error("Erreur de chargement");
+        return r.json();
+      })
+      .then((data) => {
+        setProducts(Array.isArray(data) ? data : []);
+      })
+      .catch(() => {
+        showError("Erreur", "Impossible de charger les produits.");
+      })
+      .finally(() => setLoading(false));
+  };
 
   useEffect(() => {
-    fetch("/api/products")
-      .then((r) => r.json())
-      .then((data) => {
-        setProducts(data);
-        setLoading(false);
-      });
+    loadProducts();
   }, []);
 
   const handleDelete = (product: Product) => {
@@ -65,10 +91,55 @@ export default function AdminProductsPage() {
 
   const confirmDelete = async () => {
     if (!selectedProduct) return;
-    await fetch(`/api/products/${selectedProduct.id}`, { method: "DELETE" });
-    setProducts(products.filter((p) => p.id !== selectedProduct.id));
-    setDeleteModalOpen(false);
-    setSelectedProduct(null);
+    setDeleting(true);
+    try {
+      const r = await fetch(`/api/products/${selectedProduct.id}`, { method: "DELETE" });
+      if (!r.ok) throw new Error("Échec de la suppression");
+      setProducts((prev) => prev.filter((p) => p.id !== selectedProduct.id));
+      success("Produit supprimé", `"${selectedProduct.name}" a été supprimé.`);
+      setDeleteModalOpen(false);
+      setSelectedProduct(null);
+    } catch {
+      showError("Erreur", "Impossible de supprimer le produit.");
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const handleCreate = async () => {
+    const payload = {
+      name: newProduct.name.trim(),
+      reference: newProduct.reference.trim(),
+      slug: newProduct.slug.trim() || undefined,
+      price: Number(newProduct.price) * 100,
+      stock: Number(newProduct.stock),
+      description: newProduct.description.trim() || undefined,
+      status: "active",
+    };
+    if (!payload.name || !payload.reference || !payload.price) {
+      showError("Formulaire incomplet", "Merci de remplir au moins le nom, la référence et le prix.");
+      return;
+    }
+    setCreating(true);
+    try {
+      const r = await fetch("/api/products", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (!r.ok) {
+        const body = await r.json().catch(() => ({}));
+        throw new Error(body.error || "Échec de la création");
+      }
+      success("Produit créé", `"${payload.name}" a été ajouté.`);
+      setCreateModalOpen(false);
+      setNewProduct({ name: "", reference: "", slug: "", price: "", stock: "", description: "" });
+      loadProducts();
+    } catch (e: any) {
+      showError("Erreur", e?.message || "Impossible de créer le produit.");
+    } finally {
+      setCreating(false);
+    }
   };
 
   return (
@@ -83,9 +154,13 @@ export default function AdminProductsPage() {
           <div>
             <h1 className="text-[28px] font-semibold tracking-[-0.02em] text-[var(--color-text-primary)]">Produits</h1>
             <p className="mt-1 text-[15px] text-[var(--color-text-secondary)]">
-              Gérez votre catalogue de produits</p>
+              Gérez votre catalogue de produits
+            </p>
           </div>
-          <Button leftIcon={<Plus className="w-4 h-4" strokeWidth={1.5} />}>
+          <Button
+            leftIcon={<Plus className="w-4 h-4" strokeWidth={1.5} />}
+            onClick={() => setCreateModalOpen(true)}
+          >
             Nouveau produit
           </Button>
         </motion.div>
@@ -135,7 +210,7 @@ export default function AdminProductsPage() {
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center justify-end gap-1">
-                        <a href={`/admin/produits/${product.id}`} className="w-8 h-8 rounded-[var(--radius-sm)] flex items-center justify-center text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-secondary)] hover:text-[var(--color-text-primary)] transition-colors">
+                        <a href={`/boutique/${product.slug}`} className="w-8 h-8 rounded-[var(--radius-sm)] flex items-center justify-center text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-secondary)] hover:text-[var(--color-text-primary)] transition-colors">
                           <Eye className="w-4 h-4" strokeWidth={1.5} />
                         </a>
                         <a href={`/admin/produits/${product.id}`} className="w-8 h-8 rounded-[var(--radius-sm)] flex items-center justify-center text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-secondary)] hover:text-[var(--color-accent)] transition-colors">
@@ -157,6 +232,7 @@ export default function AdminProductsPage() {
         </motion.div>
       </div>
 
+      {/* Delete modal */}
       <Modal
         isOpen={deleteModalOpen}
         onClose={() => setDeleteModalOpen(false)}
@@ -165,8 +241,79 @@ export default function AdminProductsPage() {
         size="sm"
       >
         <div className="flex justify-end gap-3 mt-6">
-          <Button variant="secondary" onClick={() => setDeleteModalOpen(false)}>Annuler</Button>
-          <Button variant="destructive" onClick={confirmDelete}>Supprimer</Button>
+          <Button variant="secondary" onClick={() => setDeleteModalOpen(false)} disabled={deleting}>
+            Annuler
+          </Button>
+          <Button variant="destructive" onClick={confirmDelete} isLoading={deleting}>
+            Supprimer
+          </Button>
+        </div>
+      </Modal>
+
+      {/* Create modal */}
+      <Modal
+        isOpen={createModalOpen}
+        onClose={() => setCreateModalOpen(false)}
+        title="Nouveau produit"
+        size="lg"
+      >
+        <div className="space-y-4 mt-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Input
+              label="Nom"
+              placeholder="CarPlay sans fil - Model X"
+              value={newProduct.name}
+              onChange={(e) => setNewProduct((p) => ({ ...p, name: e.target.value }))}
+            />
+            <Input
+              label="Référence"
+              placeholder="CP-2025-001"
+              value={newProduct.reference}
+              onChange={(e) => setNewProduct((p) => ({ ...p, reference: e.target.value }))}
+            />
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Input
+              label="Slug (optionnel)"
+              placeholder="carplay-sans-fil-model-x"
+              value={newProduct.slug}
+              onChange={(e) => setNewProduct((p) => ({ ...p, slug: e.target.value }))}
+            />
+            <Input
+              label="Prix (€)"
+              type="number"
+              placeholder="129.00"
+              value={newProduct.price}
+              onChange={(e) => setNewProduct((p) => ({ ...p, price: e.target.value }))}
+            />
+          </div>
+          <Input
+            label="Stock"
+            type="number"
+            placeholder="100"
+            value={newProduct.stock}
+            onChange={(e) => setNewProduct((p) => ({ ...p, stock: e.target.value }))}
+          />
+          <div>
+            <label className="block text-[13px] font-semibold text-[var(--color-text-secondary)] mb-1.5">
+              Description
+            </label>
+            <textarea
+              rows={4}
+              className="w-full rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] text-[15px] placeholder:text-[var(--color-text-tertiary)] px-3.5 py-2.5 transition-all duration-[var(--duration-normal)] ease-[var(--ease-apple)] focus:outline-none focus:border-[var(--color-accent)] focus:shadow-[0_0_0_3px_rgba(16,185,129,0.15)] resize-none"
+              placeholder="Description courte du produit..."
+              value={newProduct.description}
+              onChange={(e) => setNewProduct((p) => ({ ...p, description: e.target.value }))}
+            />
+          </div>
+          <div className="flex justify-end gap-3">
+            <Button variant="secondary" onClick={() => setCreateModalOpen(false)} disabled={creating}>
+              Annuler
+            </Button>
+            <Button onClick={handleCreate} isLoading={creating}>
+              Créer
+            </Button>
+          </div>
         </div>
       </Modal>
     </AdminLayout>

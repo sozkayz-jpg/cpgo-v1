@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { AdminLayout } from "@/components/layout/admin-layout";
+import { useToast } from "@/components/ui/toast";
 import {
   Table,
   TableHeader,
@@ -20,18 +21,36 @@ interface Customer {
   email: string;
   phone: string | null;
   city: string | null;
-  orders: Array<{ id: number; status: string; total: number }>;
+  orders: Array<{ id: number; status: string; total: number }> | null;
   createdAt: string;
 }
 
 export default function ClientsPage() {
   const [customers, setCustomers] = useState<Customer[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { error: showError } = useToast();
 
   useEffect(() => {
+    setLoading(true);
     fetch("/api/customers")
-      .then((r) => r.json())
-      .then(setCustomers);
+      .then(async (r) => {
+        if (!r.ok) throw new Error("Erreur de chargement");
+        return r.json();
+      })
+      .then((data) => setCustomers(Array.isArray(data) ? data : []))
+      .catch(() => showError("Erreur", "Impossible de charger les clients."))
+      .finally(() => setLoading(false));
   }, []);
+
+  const totalSpent = (orders?: Customer["orders"]) => {
+    if (!orders || !orders.length) return 0;
+    return orders.reduce((sum, o) => sum + (o.total || 0), 0);
+  };
+
+  const orderCount = (orders?: Customer["orders"]) => {
+    if (!orders) return 0;
+    return orders.length;
+  };
 
   return (
     <AdminLayout>
@@ -65,25 +84,39 @@ export default function ClientsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {customers.map((customer) => (
-                <TableRow key={customer.id}>
-                  <TableCell className="font-medium">{customer.firstName} {customer.lastName}</TableCell>
-                  <TableCell>{customer.email}</TableCell>
-                  <TableCell>{customer.city || "—"}</TableCell>
-                  <TableCell>
-                    <div className="flex gap-1">
-                      {customer.orders?.length ? (
-                        <Badge variant="accent">{customer.orders.length} commande{customer.orders.length > 1 ? "s" : ""}</Badge>
-                      ) : (
-                        <span className="text-[13px] text-[var(--color-text-tertiary)]">Aucune</span>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-right font-medium">
-                    {(customer.orders?.reduce((sum, o) => sum + o.total, 0) / 100).toLocaleString("fr-FR")} €
-                  </TableCell>
-                </TableRow>
-              ))}
+              {loading ? (
+                Array.from({ length: 5 }).map((_, i) => (
+                  <TableRow key={i}>
+                    <TableCell colSpan={5}>
+                      <div className="h-6 rounded bg-[var(--color-bg-secondary)] animate-shimmer w-full" />
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                customers.map((customer) => (
+                  <TableRow key={customer.id}>
+                    <TableCell className="font-medium">
+                      {customer.firstName} {customer.lastName}
+                    </TableCell>
+                    <TableCell>{customer.email}</TableCell>
+                    <TableCell>{customer.city || "—"}</TableCell>
+                    <TableCell>
+                      <div className="flex gap-1">
+                        {orderCount(customer.orders) > 0 ? (
+                          <Badge variant="accent">
+                            {orderCount(customer.orders)} commande{orderCount(customer.orders) > 1 ? "s" : ""}
+                          </Badge>
+                        ) : (
+                          <span className="text-[13px] text-[var(--color-text-tertiary)]">Aucune</span>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right font-medium">
+                      {(totalSpent(customer.orders) / 100).toLocaleString("fr-FR")} €
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
             </TableBody>
           </Table>
         </motion.div>

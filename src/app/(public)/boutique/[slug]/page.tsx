@@ -2,7 +2,18 @@
 
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
-import { ShoppingCart, Check, Minus, Plus, ArrowLeft, Truck, Shield, RefreshCw } from "lucide-react";
+import { useToast } from "@/components/ui/toast";
+import {
+  ShoppingCart,
+  Check,
+  Minus,
+  Plus,
+  ArrowLeft,
+  Truck,
+  Shield,
+  RefreshCw,
+  AlertCircle,
+} from "lucide-react";
 
 interface Product {
   id: number;
@@ -14,38 +25,59 @@ interface Product {
   price: number;
   stock: number;
   status: string;
-  category: { name: string };
+  category: { name: string } | null;
 }
 
 export default function ProductDetailPage() {
   const params = useParams();
   const slug = params.slug as string;
   const [product, setProduct] = useState<Product | null>(null);
+  const [loading, setLoading] = useState(true);
   const [quantity, setQuantity] = useState(1);
   const [added, setAdded] = useState(false);
+  const [adding, setAdding] = useState(false);
+  const { success, error: showError } = useToast();
 
   useEffect(() => {
     if (!slug) return;
+    setLoading(true);
     fetch(`/api/products/slug/${slug}`)
-      .then((r) => r.json())
-      .then((data) => setProduct(data));
-  }, [slug]);
+      .then(async (r) => {
+        if (!r.ok) throw new Error("Produit non trouvé");
+        return r.json();
+      })
+      .then((data) => setProduct(data))
+      .catch(() => {
+        showError("Erreur", "Impossible de charger le produit.");
+      })
+      .finally(() => setLoading(false));
+  }, [slug, showError]);
 
   const addToCart = () => {
     if (!product) return;
-    const cart = JSON.parse(localStorage.getItem("cart") || "[]");
-    const existing = cart.find((item: { id: number }) => item.id === product.id);
-    if (existing) {
-      existing.quantity += quantity;
-    } else {
-      cart.push({ id: product.id, name: product.name, price: product.price, quantity });
+    setAdding(true);
+    try {
+      const cart: Array<{ id: number; name: string; price: number; quantity: number }> = JSON.parse(
+        localStorage.getItem("cart") || "[]"
+      );
+      const existing = cart.find((item) => item.id === product.id);
+      if (existing) {
+        existing.quantity += quantity;
+      } else {
+        cart.push({ id: product.id, name: product.name, price: product.price, quantity });
+      }
+      localStorage.setItem("cart", JSON.stringify(cart));
+      setAdded(true);
+      success("Ajouté au panier", `${product.name} × ${quantity}`);
+      setTimeout(() => setAdded(false), 2000);
+    } catch {
+      showError("Erreur", "Impossible d'ajouter au panier.");
+    } finally {
+      setAdding(false);
     }
-    localStorage.setItem("cart", JSON.stringify(cart));
-    setAdded(true);
-    setTimeout(() => setAdded(false), 2000);
   };
 
-  if (!product) {
+  if (loading) {
     return (
       <div className="min-h-screen bg-[var(--color-bg-primary)] flex items-center justify-center">
         <div className="animate-shimmer w-96 h-96 rounded-[var(--radius-lg)]" />
@@ -53,10 +85,34 @@ export default function ProductDetailPage() {
     );
   }
 
+  if (!product) {
+    return (
+      <div className="min-h-screen bg-[var(--color-bg-primary)] flex items-center justify-center px-5">
+        <div className="text-center">
+          <AlertCircle className="w-12 h-12 mx-auto text-[var(--color-destructive)]" strokeWidth={1.5} />
+          <h2 className="mt-4 text-[22px] font-semibold text-[var(--color-text-primary)]">Produit introuvable</h2>
+          <p className="mt-2 text-[15px] text-[var(--color-text-secondary)]">
+            Le produit que vous recherchez n'existe pas ou a été retiré.
+          </p>
+          <a
+            href="/boutique"
+            className="inline-flex items-center gap-2 mt-6 px-5 py-2.5 bg-[var(--color-accent)] text-white font-semibold text-[15px] rounded-[var(--radius-md)] shadow-[var(--shadow-accent)] hover:bg-[var(--color-accent-hover)] transition-all"
+          >
+            <ArrowLeft className="w-4 h-4" strokeWidth={1.5} />
+            Retour à la boutique
+          </a>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[var(--color-bg-primary)]">
       <div className="max-w-[1280px] mx-auto px-5 py-8 pt-[80px]">
-        <a href="/boutique" className="inline-flex items-center gap-1 text-[13px] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors">
+        <a
+          href="/boutique"
+          className="inline-flex items-center gap-1 text-[13px] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors"
+        >
           <ArrowLeft className="w-4 h-4" strokeWidth={1.5} />
           Retour à la boutique
         </a>
@@ -67,10 +123,16 @@ export default function ProductDetailPage() {
           </div>
 
           <div className="flex flex-col">
-            <p className="text-[13px] font-medium text-[var(--color-accent)] uppercase tracking-wide">{product.category?.name}</p>
-            <h1 className="mt-2 text-[28px] font-semibold tracking-[-0.02em] text-[var(--color-text-primary)]">{product.name}</h1>
+            <p className="text-[13px] font-medium text-[var(--color-accent)] uppercase tracking-wide">
+              {product.category?.name || "Produit"}
+            </p>
+            <h1 className="mt-2 text-[28px] font-semibold tracking-[-0.02em] text-[var(--color-text-primary)]">
+              {product.name}
+            </h1>
             <p className="text-[14px] text-[var(--color-text-secondary)]">Réf. {product.reference}</p>
-            <p className="mt-4 text-[15px] text-[var(--color-text-secondary)] leading-relaxed">{product.description || product.shortDesc}</p>
+            <p className="mt-4 text-[15px] text-[var(--color-text-secondary)] leading-relaxed">
+              {product.description || product.shortDesc}
+            </p>
 
             <div className="mt-6">
               <span className="text-[32px] font-semibold tracking-[-0.02em] text-[var(--color-text-primary)]">
@@ -99,23 +161,35 @@ export default function ProductDetailPage() {
 
             <button
               onClick={addToCart}
-              disabled={product.stock === 0 || added}
+              disabled={product.stock === 0 || added || adding}
               className="mt-6 w-full py-3 bg-[var(--color-accent)] text-white font-semibold text-[15px] rounded-[var(--radius-md)] shadow-[var(--shadow-accent)] hover:bg-[var(--color-accent-hover)] hover:shadow-[0_6px_20px_rgba(16,185,129,0.4)] active:scale-[0.98] transition-all duration-[var(--duration-normal)] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
-              {added ? (
-                <><Check className="w-5 h-5" strokeWidth={1.5} /> Ajouté !</>
+              {adding ? (
+                <>
+                  <span className="inline-block w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  Ajout...
+                </>
+              ) : added ? (
+                <>
+                  <Check className="w-5 h-5" strokeWidth={1.5} /> Ajouté !
+                </>
               ) : (
-                <><ShoppingCart className="w-5 h-5" strokeWidth={1.5} /> Ajouter au panier</>
+                <>
+                  <ShoppingCart className="w-5 h-5" strokeWidth={1.5} /> Ajouter au panier
+                </>
               )}
             </button>
 
             <div className="mt-8 grid grid-cols-3 gap-4">
               {[
                 { icon: <Truck className="w-5 h-5" strokeWidth={1.5} />, label: "Livraison gratuite" },
-                { icon: <Shield className="w-5 h-5" strokeWidth={1.5} />, label: "Garantie 5 ans" },
+                { icon: <Shield className="w-5 h-5" strokeWidth={1.5} />, label: "Garantie 2 ans" },
                 { icon: <RefreshCw className="w-5 h-5" strokeWidth={1.5} />, label: "Retours 30 jours" },
               ].map((f) => (
-                <div key={f.label} className="flex flex-col items-center text-center gap-2 p-3 rounded-[var(--radius-md)] bg-[var(--color-bg-secondary)]">
+                <div
+                  key={f.label}
+                  className="flex flex-col items-center text-center gap-2 p-3 rounded-[var(--radius-md)] bg-[var(--color-bg-secondary)]"
+                >
                   <div className="text-[var(--color-accent)]">{f.icon}</div>
                   <span className="text-[11px] font-medium text-[var(--color-text-secondary)]">{f.label}</span>
                 </div>

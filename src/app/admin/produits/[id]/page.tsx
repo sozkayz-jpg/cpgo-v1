@@ -1,18 +1,137 @@
 "use client";
 
 import * as React from "react";
+import { useParams, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { AdminLayout } from "@/components/layout/admin-layout";
+import { useToast } from "@/components/ui/toast";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { SEOScore } from "@/components/dashboard/seo-score";
-import { cn } from "@/lib/utils";
-import { Save, Eye, Image as ImageIcon, Type, AlignLeft, Tag, CheckCircle, AlertCircle, XCircle } from "lucide-react";
+import { Save, Eye, Type, AlignLeft, Tag, CheckCircle, AlertCircle, XCircle, ArrowLeft } from "lucide-react";
+
+interface Product {
+  id: number;
+  name: string;
+  slug: string;
+  reference: string;
+  description?: string;
+  shortDesc?: string;
+  price: number;
+  stock: number;
+  status: string;
+  category?: { name: string } | null;
+  metaTitle?: string;
+  metaDescription?: string;
+}
 
 export default function ProductPage() {
+  const params = useParams();
+  const router = useRouter();
+  const id = params.id as string;
+  const { success, error: showError } = useToast();
+  const [product, setProduct] = React.useState<Product | null>(null);
+  const [loading, setLoading] = React.useState(true);
+  const [saving, setSaving] = React.useState(false);
   const [seoScore, setSeoScore] = React.useState(72);
+
+  const [form, setForm] = React.useState({
+    name: "",
+    reference: "",
+    slug: "",
+    price: "",
+    stock: "",
+    status: "active",
+    description: "",
+    shortDesc: "",
+    metaTitle: "",
+    metaDescription: "",
+    category: "",
+  });
+
+  React.useEffect(() => {
+    if (!id) return;
+    setLoading(true);
+    fetch(`/api/products/${id}`)
+      .then(async (r) => {
+        if (!r.ok) throw new Error("Produit non trouvé");
+        return r.json();
+      })
+      .then((data: Product) => {
+        setProduct(data);
+        setForm({
+          name: data.name || "",
+          reference: data.reference || "",
+          slug: data.slug || "",
+          price: data.price ? String(data.price / 100) : "",
+          stock: data.stock !== undefined ? String(data.stock) : "",
+          status: data.status || "active",
+          description: data.description || "",
+          shortDesc: data.shortDesc || "",
+          metaTitle: data.metaTitle || "",
+          metaDescription: data.metaDescription || "",
+          category: data.category?.name || "",
+        });
+      })
+      .catch(() => showError("Erreur", "Impossible de charger le produit."))
+      .finally(() => setLoading(false));
+  }, [id, showError]);
+
+  React.useEffect(() => {
+    let score = 0;
+    if (form.metaTitle) score += 25;
+    if (form.metaDescription) score += 25;
+    if (form.name) score += 20;
+    if (form.description) score += 20;
+    if (form.slug) score += 10;
+    setSeoScore(score);
+  }, [form]);
+
+  const handleSave = async () => {
+    if (!product) return;
+    setSaving(true);
+    const payload = {
+      name: form.name.trim(),
+      reference: form.reference.trim(),
+      slug: form.slug.trim() || undefined,
+      price: Number(form.price) * 100,
+      stock: Number(form.stock),
+      status: form.status,
+      description: form.description.trim() || undefined,
+      shortDesc: form.shortDesc.trim() || undefined,
+      metaTitle: form.metaTitle.trim() || undefined,
+      metaDescription: form.metaDescription.trim() || undefined,
+    };
+    try {
+      const r = await fetch(`/api/products/${product.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (!r.ok) {
+        const body = await r.json().catch(() => ({}));
+        throw new Error(body.error || "Échec de la sauvegarde");
+      }
+      success("Enregistré", `"${payload.name}" a été mis à jour.`);
+    } catch (e: any) {
+      showError("Erreur", e?.message || "Impossible d'enregistrer le produit.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading || !product) {
+    return (
+      <AdminLayout>
+        <div className="space-y-6 animate-pulse">
+          <div className="h-8 bg-[var(--color-bg-secondary)] rounded w-1/3" />
+          <div className="h-96 bg-[var(--color-bg-secondary)] rounded" />
+        </div>
+      </AdminLayout>
+    );
+  }
 
   return (
     <AdminLayout>
@@ -22,21 +141,32 @@ export default function ProductPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
-          className="flex items-center justify-between"
+          className="flex flex-col sm:flex-row sm:items-center justify-between gap-4"
         >
           <div>
-            <h1 className="text-[28px] font-semibold tracking-[-0.02em] text-[var(--color-text-primary)]">
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => router.push("/admin/produits")}
+                className="inline-flex items-center gap-1 text-[13px] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors"
+              >
+                <ArrowLeft className="w-4 h-4" strokeWidth={1.5} />
+                Retour
+              </button>
+            </div>
+            <h1 className="mt-2 text-[28px] font-semibold tracking-[-0.02em] text-[var(--color-text-primary)]">
               Modifier le produit
             </h1>
             <p className="mt-1 text-[15px] text-[var(--color-text-secondary)]">
-              Chaise ergonomique premium - Réf. CH-2024-001
+              {product.name} - Réf. {product.reference}
             </p>
           </div>
           <div className="flex items-center gap-3">
-            <Button variant="secondary" leftIcon={<Eye className="w-4 h-4" strokeWidth={1.5} />}>
-              Aperçu
-            </Button>
-            <Button leftIcon={<Save className="w-4 h-4" strokeWidth={1.5} />}>
+            <a href={`/boutique/${product.slug}`}>
+              <Button variant="secondary" leftIcon={<Eye className="w-4 h-4" strokeWidth={1.5} />}>
+                Aperçu
+              </Button>
+            </a>
+            <Button leftIcon={<Save className="w-4 h-4" strokeWidth={1.5} />} onClick={handleSave} isLoading={saving}>
               Enregistrer
             </Button>
           </div>
@@ -59,14 +189,27 @@ export default function ProductPage() {
               </div>
 
               <div className="space-y-4">
-                <Input label="Nom du produit" defaultValue="Chaise ergonomique premium" />
+                <Input label="Nom du produit" value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} />
                 <div className="grid grid-cols-2 gap-4">
-                  <Input label="Référence" defaultValue="CH-2024-001" />
-                  <Input label="Prix (€)" type="number" defaultValue="499" />
+                  <Input label="Référence" value={form.reference} onChange={(e) => setForm((f) => ({ ...f, reference: e.target.value }))} />
+                  <Input label="Prix (€)" type="number" value={form.price} onChange={(e) => setForm((f) => ({ ...f, price: e.target.value }))} />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
-                  <Input label="Stock" type="number" defaultValue="45" />
-                  <Input label="Catégorie" defaultValue="Mobilier de bureau" />
+                  <Input label="Stock" type="number" value={form.stock} onChange={(e) => setForm((f) => ({ ...f, stock: e.target.value }))} />
+                  <Input label="Catégorie" value={form.category} onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))} />
+                </div>
+                <div>
+                  <label className="block text-[13px] font-semibold text-[var(--color-text-secondary)] mb-1.5">Statut</label>
+                  <select
+                    className="w-full rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] text-[15px] px-3.5 py-2.5 transition-all duration-[var(--duration-normal)] ease-[var(--ease-apple)] focus:outline-none focus:border-[var(--color-accent)] focus:shadow-[0_0_0_3px_rgba(16,185,129,0.15)]"
+                    value={form.status}
+                    onChange={(e) => setForm((f) => ({ ...f, status: e.target.value }))}
+                  >
+                    <option value="active">Actif</option>
+                    <option value="low_stock">Stock faible</option>
+                    <option value="out_of_stock">Rupture</option>
+                    <option value="draft">Brouillon</option>
+                  </select>
                 </div>
               </div>
             </Card>
@@ -86,7 +229,8 @@ export default function ProductPage() {
                   <textarea
                     className="w-full rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] text-[15px] placeholder:text-[var(--color-text-tertiary)] px-3.5 py-2.5 transition-all duration-[var(--duration-normal)] ease-[var(--ease-apple)] focus:outline-none focus:border-[var(--color-accent)] focus:shadow-[0_0_0_3px_rgba(16,185,129,0.15)] resize-none"
                     rows={3}
-                    defaultValue="Chaise ergonomique haut de gamme avec support lombaire réglable et accoudoirs 4D."
+                    value={form.shortDesc}
+                    onChange={(e) => setForm((f) => ({ ...f, shortDesc: e.target.value }))}
                   />
                 </div>
                 <div>
@@ -96,7 +240,8 @@ export default function ProductPage() {
                   <textarea
                     className="w-full rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] text-[15px] placeholder:text-[var(--color-text-tertiary)] px-3.5 py-2.5 transition-all duration-[var(--duration-normal)] ease-[var(--ease-apple)] focus:outline-none focus:border-[var(--color-accent)] focus:shadow-[0_0_0_3px_rgba(16,185,129,0.15)] resize-none"
                     rows={6}
-                    defaultValue="Conçue pour les professionnels passant de longues heures assis, cette chaise ergonomique premium offre un confort exceptionnel grâce à son support lombaire dynamique, ses accoudoirs 4D réglables et son dossier en mesh respirant."
+                    value={form.description}
+                    onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
                   />
                 </div>
               </div>
@@ -112,9 +257,9 @@ export default function ProductPage() {
               <div className="space-y-4">
                 <Input
                   label="Meta title"
-                  defaultValue="Chaise ergonomique premium | CPGO"
-                  rightIcon={<span className="text-[11px] text-[var(--color-text-tertiary)]">55/60</span>
-                  }
+                  value={form.metaTitle}
+                  onChange={(e) => setForm((f) => ({ ...f, metaTitle: e.target.value }))}
+                  rightIcon={<span className="text-[11px] text-[var(--color-text-tertiary)]">{form.metaTitle.length}/60</span>}
                 />
                 <div>
                   <label className="block text-[13px] font-semibold text-[var(--color-text-secondary)] mb-1.5">
@@ -123,9 +268,10 @@ export default function ProductPage() {
                   <textarea
                     className="w-full rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] text-[15px] placeholder:text-[var(--color-text-tertiary)] px-3.5 py-2.5 transition-all duration-[var(--duration-normal)] ease-[var(--ease-apple)] focus:outline-none focus:border-[var(--color-accent)] focus:shadow-[0_0_0_3px_rgba(16,185,129,0.15)] resize-none"
                     rows={3}
-                    defaultValue="Découvrez notre chaise ergonomique premium avec support lombaire réglable. Livraison gratuite et garantie 5 ans."
+                    value={form.metaDescription}
+                    onChange={(e) => setForm((f) => ({ ...f, metaDescription: e.target.value }))}
                   />
-                  <p className="mt-1 text-[11px] text-[var(--color-text-tertiary)] text-right">142/160</p>
+                  <p className="mt-1 text-[11px] text-[var(--color-text-tertiary)] text-right">{form.metaDescription.length}/160</p>
                 </div>
                 <div>
                   <label className="block text-[13px] font-semibold text-[var(--color-text-secondary)] mb-1.5">
@@ -135,7 +281,8 @@ export default function ProductPage() {
                     <span className="text-[13px] text-[var(--color-text-tertiary)]">cpgo.fr/produit/</span>
                     <input
                       type="text"
-                      defaultValue="chaise-ergonomique-premium"
+                      value={form.slug}
+                      onChange={(e) => setForm((f) => ({ ...f, slug: e.target.value }))}
                       className="flex-1 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] text-[15px] px-3.5 py-2.5 transition-all duration-[var(--duration-normal)] ease-[var(--ease-apple)] focus:outline-none focus:border-[var(--color-accent)] focus:shadow-[0_0_0_3px_rgba(16,185,129,0.15)]"
                     />
                   </div>
@@ -161,14 +308,14 @@ export default function ProductPage() {
                     <CheckCircle className="w-4 h-4 text-[var(--color-accent)]" strokeWidth={1.5} />
                     <span className="text-[13px] text-[var(--color-text-secondary)]">Meta title présent</span>
                   </div>
-                  <Badge variant="accent">OK</Badge>
+                  <Badge variant="accent">{form.metaTitle ? "OK" : "Manquant"}</Badge>
                 </div>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <CheckCircle className="w-4 h-4 text-[var(--color-accent)]" strokeWidth={1.5} />
                     <span className="text-[13px] text-[var(--color-text-secondary)]">Meta description</span>
                   </div>
-                  <Badge variant="accent">OK</Badge>
+                  <Badge variant="accent">{form.metaDescription ? "OK" : "Manquant"}</Badge>
                 </div>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -196,13 +343,13 @@ export default function ProductPage() {
 
               <div className="space-y-2 p-4 rounded-[var(--radius-md)] bg-[var(--color-bg-secondary)]">
                 <p className="text-[14px] text-[var(--color-accent)] truncate">
-                  cpgo.fr › produit › chaise-ergonomique-premium
+                  cpgo.fr › produit › {form.slug || "produit"}
                 </p>
                 <p className="text-[18px] text-[#1a0dab] dark:text-[#8ab4f8] font-medium leading-tight">
-                  Chaise ergonomique premium | CPGO
+                  {form.metaTitle || form.name || "Titre du produit"}
                 </p>
                 <p className="text-[14px] text-[var(--color-text-secondary)] leading-relaxed">
-                  Découvrez notre chaise ergonomique premium avec support lombaire réglable. Livraison gratuite et garantie 5 ans.
+                  {form.metaDescription || form.shortDesc || "Description du produit..."}
                 </p>
               </div>
             </Card>
