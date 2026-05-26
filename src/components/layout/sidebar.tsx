@@ -33,30 +33,30 @@ interface SidebarSection {
 const sidebarSections: SidebarSection[] = [
   {
     items: [
-      { label: "Dashboard", href: "/", icon: LayoutDashboard },
-      { label: "Commandes", href: "/commandes", icon: ShoppingCart },
-      { label: "Produits", href: "/produits", icon: Package },
-      { label: "Clients", href: "/clients", icon: Users },
-      { label: "Analytics", href: "/analytics", icon: BarChart3 },
+      { label: "Dashboard", href: "/admin", icon: LayoutDashboard },
+      { label: "Commandes", href: "/admin/commandes", icon: ShoppingCart },
+      { label: "Produits", href: "/admin/produits", icon: Package },
+      { label: "Clients", href: "/admin/clients", icon: Users },
+      { label: "Analytics", href: "/admin/analytics", icon: BarChart3 },
     ],
   },
   {
     title: "Marketing",
     items: [
-      { label: "SEO", href: "/seo", icon: Search },
+      { label: "SEO", href: "/admin/seo", icon: Search },
     ],
   },
   {
     title: "Personnalisation",
     items: [
-      { label: "Thème", href: "/theme", icon: Palette },
-      { label: "Paramètres", href: "/parametres", icon: Settings },
+      { label: "Thème", href: "/admin/theme", icon: Palette },
+      { label: "Paramètres", href: "/admin/parametres", icon: Settings },
     ],
   },
   {
     title: "Support",
     items: [
-      { label: "Aide", href: "/aide", icon: HelpCircle },
+      { label: "Aide", href: "/admin/aide", icon: HelpCircle },
     ],
   },
 ];

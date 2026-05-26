@@ -1,8 +1,9 @@
 "use client";
 
-import * as React from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { cn } from "@/lib/utils";
+import { formatDistanceToNow } from "date-fns";
+import { fr } from "date-fns/locale";
 import {
   Package,
   ShoppingCart,
@@ -20,70 +21,79 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 
-const kpiData = [
-  {
-    title: "Ventes totales",
-    value: 45280,
-    prefix: "",
-    suffix: " €",
-    change: 12.5,
-    icon: <DollarSign className="w-5 h-5" strokeWidth={1.5} />,
-    color: "accent" as const,
-  },
-  {
-    title: "Commandes",
-    value: 1284,
-    prefix: "",
-    suffix: "",
-    change: 8.2,
-    icon: <ShoppingCart className="w-5 h-5" strokeWidth={1.5} />,
-    color: "info" as const,
-  },
-  {
-    title: "Clients",
-    value: 3240,
-    prefix: "",
-    suffix: "",
-    change: -2.1,
-    icon: <Users className="w-5 h-5" strokeWidth={1.5} />,
-    color: "warning" as const,
-  },
-  {
-    title: "Produits",
-    value: 856,
-    prefix: "",
-    suffix: "",
-    change: 5.7,
-    icon: <Package className="w-5 h-5" strokeWidth={1.5} />,
-    color: "accent" as const,
-  },
-];
-
-const recentOrders: Array<{
-  id: string;
-  client: string;
+interface Order {
+  id: number;
+  number: string;
+  status: string;
   total: number;
-  status: "pending" | "confirmed" | "shipped" | "delivered" | "cancelled" | "refunded";
-  date: string;
-}> = [
-  { id: "#CMD-2024-001", client: "Marie Dupont", total: 2450, status: "delivered" as const, date: "26 mai 2024" },
-  { id: "#CMD-2024-002", client: "Jean Martin", total: 1890, status: "shipped" as const, date: "25 mai 2024" },
-  { id: "#CMD-2024-003", client: "Sophie Bernard", total: 3200, status: "confirmed" as const, date: "25 mai 2024" },
-  { id: "#CMD-2024-004", client: "Lucas Petit", total: 750, status: "pending" as const, date: "24 mai 2024" },
-  { id: "#CMD-2024-005", client: "Emma Richard", total: 4100, status: "cancelled" as const, date: "23 mai 2024" },
-];
+  subtotal: number;
+  createdAt: string;
+  customer: { firstName: string; lastName: string };
+}
 
 export function DashboardContent() {
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [products, setProducts] = useState([]);
+  const [customers, setCustomers] = useState([]);
+
+  useEffect(() => {
+    fetch("/api/orders?limit=5").then((r) => r.json()).then(setOrders);
+    fetch("/api/products").then((r) => r.json()).then(setProducts);
+    fetch("/api/customers").then((r) => r.json()).then(setCustomers);
+  }, []);
+
+  const totalSales = orders.reduce((sum, o) => sum + o.total, 0);
+  const totalOrders = orders.length;
+  const totalCustomers = customers.length;
+  const totalProducts = products.length;
+
+  const kpiData = [
+    {
+      title: "Ventes totales",
+      value: Math.round(totalSales / 100),
+      prefix: "",
+      suffix: " €",
+      change: 12.5,
+      icon: <DollarSign className="w-5 h-5" strokeWidth={1.5} />,
+      color: "accent" as const,
+    },
+    {
+      title: "Commandes",
+      value: totalOrders,
+      prefix: "",
+      suffix: "",
+      change: 8.2,
+      icon: <ShoppingCart className="w-5 h-5" strokeWidth={1.5} />,
+      color: "info" as const,
+    },
+    {
+      title: "Clients",
+      value: totalCustomers,
+      prefix: "",
+      suffix: "",
+      change: -2.1,
+      icon: <Users className="w-5 h-5" strokeWidth={1.5} />,
+      color: "warning" as const,
+    },
+    {
+      title: "Produits",
+      value: totalProducts,
+      prefix: "",
+      suffix: "",
+      change: 5.7,
+      icon: <Package className="w-5 h-5" strokeWidth={1.5} />,
+      color: "accent" as const,
+    },
+  ];
+
   return (
     <div className="space-y-8">
-      {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
         {kpiData.map((kpi, index) => (
           <KPICard key={index} {...kpi} />
         ))}
       </div>
 
-      {/* Recent Orders Table */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -94,7 +104,7 @@ export function DashboardContent() {
             Commandes récentes
           </h2>
           <p className="text-[15px] text-[var(--color-text-secondary)]">
-            Les 5 dernières commandes passées sur votre boutique
+            Les dernières commandes passées sur votre boutique
           </p>
         </div>
 
@@ -109,13 +119,15 @@ export function DashboardContent() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {recentOrders.map((order) => (
+            {orders.map((order) => (
               <TableRow key={order.id}>
-                <TableCell className="font-medium">{order.id}</TableCell>
-                <TableCell>{order.client}</TableCell>
-                <TableCell className="text-[var(--color-text-secondary)]">{order.date}</TableCell>
+                <TableCell className="font-medium">#{order.number}</TableCell>
+                <TableCell>{order.customer?.firstName} {order.customer?.lastName}</TableCell>
+                <TableCell className="text-[var(--color-text-secondary)]">
+                  {formatDistanceToNow(new Date(order.createdAt), { addSuffix: true, locale: fr })}
+                </TableCell>
                 <TableCell>
-                  <Badge variant={order.status}>
+                  <Badge variant={order.status as never}>
                     {order.status === "delivered" && "Livrée"}
                     {order.status === "shipped" && "Expédiée"}
                     {order.status === "confirmed" && "Confirmée"}
@@ -125,7 +137,7 @@ export function DashboardContent() {
                   </Badge>
                 </TableCell>
                 <TableCell className="text-right font-medium">
-                  {order.total.toLocaleString("fr-FR")} €
+                  {(order.total / 100).toLocaleString("fr-FR")} €
                 </TableCell>
               </TableRow>
             ))}
