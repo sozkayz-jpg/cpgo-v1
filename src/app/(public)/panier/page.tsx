@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Trash2, ArrowLeft, Plus, Minus, ShoppingBag } from "lucide-react";
+import { Trash2, ArrowLeft, Plus, Minus, ShoppingBag, CreditCard } from "lucide-react";
+import { useToast } from "@/components/ui/toast";
 
 interface CartItem {
   id: number;
@@ -13,6 +14,8 @@ interface CartItem {
 export default function PanierPage() {
   const [items, setItems] = useState<CartItem[]>([]);
   const [mounted, setMounted] = useState(false);
+  const [checkingOut, setCheckingOut] = useState(false);
+  const { success, error: showError } = useToast();
 
   useEffect(() => {
     setMounted(true);
@@ -36,6 +39,28 @@ export default function PanierPage() {
   };
 
   const total = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+
+  const checkout = async () => {
+    if (items.length === 0) return;
+    setCheckingOut(true);
+    try {
+      const res = await fetch("/api/stripe/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ items, email: "client@example.com" }),
+      });
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        showError("Erreur", "Impossible de créer la session de paiement");
+        setCheckingOut(false);
+      }
+    } catch {
+      showError("Erreur", "Problème de connexion");
+      setCheckingOut(false);
+    }
+  };
 
   if (!mounted) return null;
 
@@ -94,8 +119,12 @@ export default function PanierPage() {
             <span className="text-[17px] font-semibold text-[var(--color-text-primary)]">Total</span>
             <span className="text-[22px] font-semibold text-[var(--color-text-primary)]">{(total / 100).toLocaleString("fr-FR", { style: "currency", currency: "EUR" })}</span>
           </div>
-          <button className="mt-6 w-full py-3 bg-[var(--color-text-primary)] text-white font-semibold text-[15px] rounded-[var(--radius-md)] hover:bg-[var(--color-bg-secondary)] hover:text-[var(--color-text-primary)] border border-transparent hover:border-[var(--color-border)] transition-all duration-[var(--duration-normal)]">
-            Passer la commande
+          <button
+            onClick={checkout}
+            disabled={checkingOut}
+            className="mt-6 w-full py-3 bg-[var(--color-text-primary)] text-white font-semibold text-[15px] rounded-[var(--radius-md)] flex items-center justify-center gap-2 hover:bg-[var(--color-bg-secondary)] hover:text-[var(--color-text-primary)] border border-transparent hover:border-[var(--color-border)] transition-all duration-[var(--duration-normal)] disabled:opacity-60">
+            <CreditCard className="w-4 h-4" strokeWidth={1.5} />
+            {checkingOut ? "Redirection vers Stripe..." : "Payer avec Stripe"}
           </button>
         </div>
 
