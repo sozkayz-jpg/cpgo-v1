@@ -1,0 +1,123 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  name      String?
+  password  String
+  role      String   @default("admin")
+  avatar    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Category {
+  id          Int       @id @default(autoincrement())
+  name        String
+  slug        String    @unique
+  description String?
+  image       String?
+  products    Product[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Product {
+  id            Int         @id @default(autoincrement())
+  name          String
+  slug          String      @unique
+  reference     String      @unique
+  description   String?
+  shortDesc     String?
+  price         Int
+  comparePrice  Int?
+  stock         Int         @default(0)
+  sku           String?
+  images        String?
+  status        String      @default("active")
+  featured      Boolean     @default(false)
+  category      Category    @relation(fields: [categoryId], references: [id])
+  categoryId    Int
+  orderItems    OrderItem[]
+  seo           SEOPage?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+}
+
+model Customer {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  firstName String
+  lastName  String
+  phone     String?
+  address   String?
+  city      String?
+  zip       String?
+  country   String?  @default("FR")
+  orders    Order[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Order {
+  id         Int         @id @default(autoincrement())
+  number     String      @unique
+  status     String      @default("pending")
+  total      Int
+  subtotal   Int
+  shipping   Int
+  tax        Int?
+  notes      String?
+  customer   Customer    @relation(fields: [customerId], references: [id])
+  customerId Int
+  items      OrderItem[]
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+}
+
+model OrderItem {
+  id        Int     @id @default(autoincrement())
+  quantity  Int
+  price     Int
+  product   Product @relation(fields: [productId], references: [id])
+  productId Int
+  order     Order   @relation(fields: [orderId], references: [id])
+  orderId   Int
+}
+
+model SEOPage {
+  id              Int      @id @default(autoincrement())
+  path            String   @unique
+  title           String
+  metaTitle       String?
+  metaDescription String?
+  score           Int      @default(0)
+  issues          Int      @default(0)
+  checked         Boolean  @default(false)
+  product         Product? @relation(fields: [productId], references: [id])
+  productId       Int?     @unique
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model Theme {
+  id           Int     @id @default(autoincrement())
+  primary      String  @default("#10B981")
+  secondary    String  @default("#0A84FF")
+  background   String  @default("#FFFFFF")
+  darkMode     Boolean @default(false)
+  fontTitle    String  @default("SF Pro Display")
+  fontBody     String  @default("SF Pro Text")
+  baseSize     String  @default("16px")
+  maxWidth     String  @default("1280px")
+  spacing      String  @default("24px")
+  borderRadius String  @default("14px")
+  updatedAt    DateTime @updatedAt
+}
